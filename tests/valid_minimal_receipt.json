@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "identity": {
+    "receipt_id": "receipt-local-setup-20260730",
+    "created_at": "2026-07-30T17:38:20Z",
+    "issuer": "Jay Wisdom",
+    "domain": null
+  },
+  "content": {
+    "assertion": "Local ReceiptOS workspace initialized on DESKTOP-LR1G5EQ",
+    "evidence_present": [
+      "Python 3.13.14 present",
+      "Git 2.55.0.windows.3 present",
+      "Repository initialized: True"
+    ],
+    "evidence_missing": [
+      "GitHub remote published"
+    ]
+  },
+  "epistemics": {
+    "established": [
+      "Local workspace existed at recorded time",
+      "Git repository was initialized"
+    ],
+    "unknown": [
+      "Whether a GitHub remote was later added"
+    ],
+    "causal_inference": "NONE_BEYOND_EVIDENCE"
+  }
+}
