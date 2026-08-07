@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jaywisdom.eth/receiptos/schema/receipt_v0.1.schema.json",
+  "title": "ReceiptOS Receipt Schema v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "identity", "content", "epistemics"],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["receipt_id", "created_at", "issuer", "domain"],
+      "properties": {
+        "receipt_id": { "type": "string", "minLength": 1 },
+        "created_at": { "type": "string", "format": "date-time" },
+        "issuer": { "type": "string", "minLength": 1 },
+        "domain": { "type": ["string", "null"] }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assertion", "evidence_present", "evidence_missing"],
+      "properties": {
+        "assertion": { "type": "string", "minLength": 1 },
+        "evidence_present": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence_missing": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "epistemics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["established", "unknown", "causal_inference"],
+      "properties": {
+        "established": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "unknown": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "causal_inference": {
+          "const": "NONE_BEYOND_EVIDENCE"
+        }
+      }
+    }
+  }
+}
