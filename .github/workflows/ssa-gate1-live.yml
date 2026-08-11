@@ -1,0 +1,62 @@
+name: SSA Gate 1 Live Verification
+
+on:
+  pull_request:
+    paths:
+      - 'ssa_public_replay/**'
+      - '.github/workflows/ssa-gate1-live.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate1-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Start from empty evidence store
+        run: rm -rf ssa_public_replay/store
+
+      - name: Fetch declared live SSA public scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t URLS < <(grep -Ev '^\s*(#|$)' ssa_public_replay/live_scope.txt)
+          test "${#URLS[@]}" -gt 0
+          python ssa_public_replay/gate1.py fetch "${URLS[@]}"
+
+      - name: Verify Gate 1 V01-V08
+        run: python ssa_public_replay/gate1.py verify | tee ssa_public_replay/gate1-output.txt
+
+      - name: Emit canonical hashes
+        if: always()
+        shell: bash
+        run: |
+          if [ -f ssa_public_replay/store/manifest.jsonl ]; then
+            echo "H_manifest=$(sha256sum ssa_public_replay/store/manifest.jsonl | awk '{print $1}')"
+          fi
+          if [ -f ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json ]; then
+            echo "H_G1=$(sha256sum ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json | awk '{print $1}')"
+            cat ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json
+          fi
+
+      - name: Upload exact Gate 1 evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSA_PUBLIC_REPLAY_CORPUS_v0.1-GATE1
+          path: |
+            ssa_public_replay/store/**
+            ssa_public_replay/gate1-output.txt
+            ssa_public_replay/live_scope.txt
+          if-no-files-found: error
+          retention-days: 90
