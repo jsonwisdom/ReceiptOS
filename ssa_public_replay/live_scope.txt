@@ -1,0 +1,10 @@
+# SSA_PUBLIC_REPLAY_CORPUS_v0.1
+# Gate 1 live scope: public policy/access/knowledge-management surfaces.
+# Blank lines and comments are ignored by CI.
+# Monetary benefit scoring and private/authenticated claimant surfaces are excluded.
+
+https://www.ssa.gov/robots.txt
+https://www.ssa.gov/myaccount/create.html
+https://www.ssa.gov/ssi/text-report-ussi.htm
+https://www.ssa.gov/apply/appeal-decision-we-made/request-reconsideration
+https://www.ssa.gov/forms/ssa-561.html
