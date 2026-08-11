@@ -1,9 +1,9 @@
 # SSA_PUBLIC_REPLAY_CORPUS_v0.1
-# Gate 1 live scope: public policy/access/knowledge-management surfaces.
-# Blank lines and comments are ignored by CI.
+# Gate 1 dataset scope: public policy/access/knowledge-management surfaces only.
+# Blank lines and comments are ignored.
 # Monetary benefit scoring and private/authenticated claimant surfaces are excluded.
+# robots.txt is NOT part of the dataset; capture it separately as a crawl-directive preflight if desired.
 
-https://www.ssa.gov/robots.txt
 https://www.ssa.gov/myaccount/create.html
 https://www.ssa.gov/ssi/text-report-ussi.htm
 https://www.ssa.gov/apply/appeal-decision-we-made/request-reconsideration

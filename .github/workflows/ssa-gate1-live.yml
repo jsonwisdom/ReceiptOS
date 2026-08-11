@@ -1,22 +1,18 @@
-name: SSA Gate 1 Live Verification
+name: SSA Gate 1 Imported Corpus Verification
 
 on:
-  push:
-    branches: ['master']
-    paths:
-      - 'ssa_public_replay/**'
-      - '.github/workflows/ssa-gate1-live.yml'
-  pull_request:
-    paths:
-      - 'ssa_public_replay/**'
-      - '.github/workflows/ssa-gate1-live.yml'
   workflow_dispatch:
+    inputs:
+      capture_path:
+        description: 'Committed capture root, e.g. ssa_public_replay/captures/20260811T030000Z'
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  gate1-live:
+  gate1-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -28,61 +24,60 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Start from empty evidence store
-        run: rm -rf ssa_public_replay/store
-
-      - name: Fetch declared live SSA public scope
-        id: fetch
-        continue-on-error: true
+      - name: Require imported corpus
         shell: bash
+        env:
+          CAPTURE_PATH: ${{ inputs.capture_path }}
         run: |
           set -euo pipefail
-          mapfile -t URLS < <(grep -Ev '^\s*(#|$)' ssa_public_replay/live_scope.txt)
-          test "${#URLS[@]}" -gt 0
-          python ssa_public_replay/gate1.py fetch "${URLS[@]}"
+          test -d "$CAPTURE_PATH/raw"
+          test -f "$CAPTURE_PATH/manifest.jsonl"
 
       - name: Verify Gate 1 V01-V08
-        if: always()
         id: verify
         continue-on-error: true
         shell: bash
+        env:
+          CAPTURE_PATH: ${{ inputs.capture_path }}
         run: |
-          mkdir -p ssa_public_replay/store
-          python ssa_public_replay/gate1.py verify | tee ssa_public_replay/gate1-output.txt
+          set -o pipefail
+          python ssa_public_replay/gate1.py --root "$CAPTURE_PATH" verify | tee "$CAPTURE_PATH/gate1-output.txt"
 
       - name: Emit canonical hashes
         if: always()
         shell: bash
+        env:
+          CAPTURE_PATH: ${{ inputs.capture_path }}
         run: |
-          if [ -f ssa_public_replay/store/manifest.jsonl ]; then
-            echo "H_manifest=$(sha256sum ssa_public_replay/store/manifest.jsonl | awk '{print $1}')"
+          if [ -f "$CAPTURE_PATH/manifest.jsonl" ]; then
+            echo "H_manifest=$(sha256sum "$CAPTURE_PATH/manifest.jsonl" | awk '{print $1}')"
           fi
-          if [ -f ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json ]; then
-            echo "H_G1=$(sha256sum ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json | awk '{print $1}')"
-            cat ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json
+          if [ -f "$CAPTURE_PATH/SSA_GATE1_RECEIPT_v0.1.json" ]; then
+            echo "H_G1=$(sha256sum "$CAPTURE_PATH/SSA_GATE1_RECEIPT_v0.1.json" | awk '{print $1}')"
+            cat "$CAPTURE_PATH/SSA_GATE1_RECEIPT_v0.1.json"
           fi
 
-      - name: Upload exact Gate 1 evidence bundle
+      - name: Upload exact Gate 1 verification bundle
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: SSA_PUBLIC_REPLAY_CORPUS_v0.1-GATE1
-          path: |
-            ssa_public_replay/store/**
-            ssa_public_replay/gate1-output.txt
-            ssa_public_replay/live_scope.txt
+          path: ${{ inputs.capture_path }}
           if-no-files-found: error
           retention-days: 90
 
       - name: Enforce fail-closed promotion barrier
         if: always()
         shell: bash
+        env:
+          CAPTURE_PATH: ${{ inputs.capture_path }}
         run: |
-          test -f ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json
-          python - <<'PY'
-          import json
+          set -euo pipefail
+          test -f "$CAPTURE_PATH/SSA_GATE1_RECEIPT_v0.1.json"
+          python - "$CAPTURE_PATH/SSA_GATE1_RECEIPT_v0.1.json" <<'PY'
+          import json, sys
           from pathlib import Path
-          p = Path('ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json')
+          p = Path(sys.argv[1])
           receipt = json.loads(p.read_text())
           if receipt.get('gate1_status') != 'PASS':
               raise SystemExit('HALT_FAIL_CLOSED: Gate 1 did not PASS')
