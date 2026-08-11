@@ -1,6 +1,11 @@
 name: SSA Gate 1 Live Verification
 
 on:
+  push:
+    branches: ['master']
+    paths:
+      - 'ssa_public_replay/**'
+      - '.github/workflows/ssa-gate1-live.yml'
   pull_request:
     paths:
       - 'ssa_public_replay/**'
@@ -27,6 +32,8 @@ jobs:
         run: rm -rf ssa_public_replay/store
 
       - name: Fetch declared live SSA public scope
+        id: fetch
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -35,7 +42,13 @@ jobs:
           python ssa_public_replay/gate1.py fetch "${URLS[@]}"
 
       - name: Verify Gate 1 V01-V08
-        run: python ssa_public_replay/gate1.py verify | tee ssa_public_replay/gate1-output.txt
+        if: always()
+        id: verify
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p ssa_public_replay/store
+          python ssa_public_replay/gate1.py verify | tee ssa_public_replay/gate1-output.txt
 
       - name: Emit canonical hashes
         if: always()
@@ -60,3 +73,18 @@ jobs:
             ssa_public_replay/live_scope.txt
           if-no-files-found: error
           retention-days: 90
+
+      - name: Enforce fail-closed promotion barrier
+        if: always()
+        shell: bash
+        run: |
+          test -f ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('ssa_public_replay/store/SSA_GATE1_RECEIPT_v0.1.json')
+          receipt = json.loads(p.read_text())
+          if receipt.get('gate1_status') != 'PASS':
+              raise SystemExit('HALT_FAIL_CLOSED: Gate 1 did not PASS')
+          print('PROMOTION_AUTHORIZED')
+          PY
